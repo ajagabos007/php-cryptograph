@@ -366,5 +366,4 @@ session_start();
 //    unset($_SESSION['plain_text']);
    unset($_SESSION['DES_operation']);
    unset($_SESSION['error']);
-//    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
    ?>
