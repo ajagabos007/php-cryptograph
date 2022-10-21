@@ -32,9 +32,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' || $_POST['DES_operation']?? null === n
 
             $plain_text = $_POST["plain_text"] ?? 'random plain text';
             $des->cipher_text =  $des->encrypt($plain_text);
-            
-            $_SESSION['cipher_text'] = $des->cipher_text;
             $_SESSION['DES'] = serialize($des);
+
+            $_SESSION['cipher_text'] = $des->cipher_text;
             $response = array(
                 "status" => 200,
                 "message" => "plain text encrypted successfully",
