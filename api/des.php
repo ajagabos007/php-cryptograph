@@ -75,7 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' || $_POST['DES_operation']?? null === n
 
     } catch (Exception $th) {
         if( $_SESSION['DES_operation'] == 'encryption')
-            session_destroy();
+            unset($_SESSION['plain_text']);
         $_SESSION['error'] = $th;
         $response = array(
             "status" => 422,
