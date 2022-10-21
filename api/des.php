@@ -32,7 +32,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' || $_POST['DES_operation']?? null === n
 
             $plain_text = $_POST["plain_text"] ?? 'random plain text';
             $des->cipher_text =  $des->encrypt($plain_text);
-            $_SESSION['DES'] = serialize($des);
+            // $_SESSION['DES'] = serialize($des);
+            $_SESSION['DES-PLAIN-TEXT'] = $des->decrypt($des->cipher_text);
+            $_SESSION['DES-KEY'] = $des->getKey();
 
             $_SESSION['cipher_text'] = $des->cipher_text;
             $response = array(
@@ -42,11 +44,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' || $_POST['DES_operation']?? null === n
         }
 
         else {
-            if(!isset($_SESSION['DES'])){
+            // if(!isset($_SESSION['DES']))
+            if(!isset($_SESSION['DES-PLAIN-TEXT']))
                 throw new Exception("Please perform des encryption first before decryption", 1);
-            }
 
-            $des = unserialize($_SESSION['DES']);
+            // $des = unserialize($_SESSION['DES']);
             $cipher_text = $_POST["cipher_text"] ?? 'random cipher text';
             $des_cipher_text = $_POST['des_cipher_text']?? null;
             
@@ -55,13 +57,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' || $_POST['DES_operation']?? null === n
               throw new Exception("Please perform des encryption first before decryption", 1);
             }
 
-            if(!($des_cipher_text === $cipher_text) || !($key === $des->getKey()))
+            //if(!($des_cipher_text === $cipher_text) || !($key === $des->getKey()))
+            if(!($des_cipher_text === $cipher_text) || !($key === $_SESSION['DES-KEY']))
             {
                 unset($_SESSION['plain_text']);
                 throw new Exception("Wrong key or cipher text", 1);
             }
 
-            $_SESSION['plain_text']  =   $des->decrypt($des->cipher_text);
+            $_SESSION['plain_text']  = $_SESSION['DES-PLAIN-TEXT'] ; //$des->decrypt($des->cipher_text);
 
             $response = array(
                 "status" => 200,
