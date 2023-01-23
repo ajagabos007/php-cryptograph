@@ -76,10 +76,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' || $_POST['DES_operation']?? null === n
         echo json_encode($response);
         exit();
 
-    } catch (Exception $th) {
+    } catch (\Throwable $th) {
         if( $_SESSION['DES_operation'] == 'encryption')
             unset($_SESSION['plain_text']);
-        $_SESSION['error'] = $th;
+        $_SESSION['error'] = $th->getMessage();
         $response = array(
             "status" => 422,
             "message" => "DES API call Error",

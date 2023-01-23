@@ -1,0 +1,8 @@
+body{
+    background-image: url('../images/bg-image-1.jpg');
+    /* opacity: 0.4; */
+}
+.layout{
+    margin-top: 10px ;
+    background-color: white;
+}

@@ -1,5 +1,59 @@
 <?php 
     session_start();
+    require __DIR__.'/vendor/autoload.php';
+    require __DIR__.'/connections/databases/MysqlConnection.php';
+    use connections\database\MysqlConnection;
+
+    // Create Database Coonection
+    $mysql_db = new MysqlConnection();
+    $mysql_con = $mysql_db->connect();
+
+    $valid_link = false;
+    $operational_log = null;
+    $decrypted_succesfully = false;
+    $error = null;
+    $success = null;
+
+    if ($_SERVER['REQUEST_METHOD'] == 'GET'){
+        try {
+            $request = [
+                'res' => $_REQUEST['res']?? null,
+                'des_operation' => $_REQUEST['des_operation']?? null,
+                'salt' => $_REQUEST['salt']?? null,
+                'uuid' => $_REQUEST['uuid']?? null,
+                'hash' => $_REQUEST['hash']?? null,
+            ];
+            if($request['uuid']){
+                foreach ($request as $key => $value) {
+                    if($value==null){
+                        throw new Exception("The link is invalid or broken:".$key." query string is missing",1);
+                        continue;
+                    }
+                }
+
+                // get the operation log to save the mailable 
+                $uuid = $request['uuid'];
+                $sql_query = "SELECT * FROM `operational_logs` WHERE `uuid` = '$uuid'  LIMIT 1 ";
+                $result = $mysql_con->query($sql_query);
+                if ($result->num_rows <= 0) 
+                    // throw new Exception("Error Processing Request: ".$sql_query . "<br/>" . $mysql_con->error."<br/>", 1);
+                    throw new Exception("Error Processing Request, invalid or broken link", 1);
+                // output data of each row
+                while($row = $result->fetch_assoc()) {
+                    $operational_log =  $row;
+                    $valid_link=true;
+                    continue;
+                }
+
+            }else
+                throw new Exception("The link is invalid or broken",1);
+            
+        } catch (\Throwable $th) {
+            $error = $th;
+        }
+          
+    }
+   
     $_SESSION['title'] = "Home";
     include_once("header.php"); 
 ?>
@@ -7,101 +61,48 @@
         MATERIAL SECURE REMOTE COMMUNICATION USING DES
     </h2>
     <div class="p-4 pb-0 pt-0 border border-primary">
-        <h6 class="p-2 mb-4 fs-5 pt-0  bg-primary text-white">Send Encrypted Email Form</h6>
+        <h6 class="p-2 mb-4 fs-5 pt-0  bg-primary text-white">Decryption Email Form</h6>
+            <?php if(!is_null($error)) { ?>
             <div class="alert alert-danger alert-dismissible fade show" id="error-div" role="alert">
-                <strong>Error..!!!</strong> <span id="error-message">...</span>
+                <strong>Error..!!!</strong> <span id="error-message"><?php echo $error; ?></span>
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
-            <div class="alert alert-success alert-dismissible fade show" id="success-div" role="alert" >
-                <strong>Success..!!!</strong> <span id="success-message">...</span>
-                
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        <form action="api/encrypt.php" method="POST" id="encryption_mail_form">
-            <div class="mb-3 row">
-                <div class="col-md-6 mb-2">
-                    <div class="input-group"> 
-                        <span class="input-group-text">
-                            <i class="fa-solid fa-user-tie"></i>
-                        </span>
-                        <div class="form-floating">
-                            <input type="text" class="form-control" name="sender_name" minlength="3" maxlength="20" placeholder="Enter your name" id="sender_name" required>
-                            <label for="sender_name">Your name</label>
-                        </div>
-                    </div>
+            <?php } ?>
+           
+        <?php if($valid_link) { ?>
+            <form action="api/decrypt-mail.php" method="POST" id="decryption_mail_form">
+                <div class="mb-3">
+                    <label for="exampleFormControlTextarea1" class="form-label">Encrypted Message</label>
+                    <textarea name="message" class="form-control" id="exampleFormControlTextarea1" rows="1" placeholder="encrypted message" readonly disabled><?php echo $operational_log['des_result'] ?></textarea>
                 </div>
-                <div class="col-md-6 mb-2">
-                    <div class="input-group"> 
-                        <span class="input-group-text">
-                            <i class="fa-solid fa-at"></i>
-                        </span>
-                        <div class="form-floating">
-                            <input type="email" class="form-control" name="sender_email" placeholder="Your email" id="sender_email" required>
-                            <label for="sender_email">Your email address</label>
-                        </div>
-                    </div>
+                <div class="mb-3" id="decrypted-div">
+                    <label for="exampleFormControlTextarea1" class="form-label text-success ">Decrypted Message <i class="fa-solid fa-check"></i></label>
+                    <textarea name="message" class="form-control" rows="6" placeholder="Decrypted message"  id="decrypted-text-area" readonly disabled></textarea>
                 </div>
-            </div>
-            <div class="mb-3 row">
-                <div class="col-md-6 mb-2">
-                    <div class="input-group"> 
-                        <span class="input-group-text">
-                            <i class="fa-solid fa-user-tie"></i>
-                        </span>
-                        <div class="form-floating">
-                            <input type="text" class="form-control" name="receiver_name" minlength="3" maxlength="20" placeholder="Receiver name" id="receiver_name" required>
-                            <label for="receiver_name">Receiver's name</label>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-6 mb-2">
-                    <div class="input-group"> 
-                        <span class="input-group-text">
-                            <i class="fa-solid fa-at"></i>
-                        </span>
-                        <div class="form-floating">
-                            <input type="email" class="form-control" name="receiver_email" placeholder="Receiver email" id="receiver_email" required>
-                            <label for="receiver_email">Receiver's email</label>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="input-group mb-3"> 
-                <span class="input-group-text">
-                    <i class="fa-solid fa-key"></i>
-                </span>
-                <div class="form-floating">
-                    <input type="text" class="form-control" name="key" minlength="8" maxlength="8" placeholder="key" id="encryption_key" required>
-                    <label for="key">Key</label>
-                </div>
-            </div>
-            <div class="input-group mb-3"> 
-                <span class="input-group-text">
-                    <i class="fa-solid fa-envelope"></i>
-                </span>
-                <div class="form-floating">
-                    <input type="text" class="form-control" name="subject" placeholder="Receiver email" id="subject" required>
-                    <label for="subject">Mail Subject</label>
-                </div>
-            </div>
-            
-            <div class="mb-3">
-                <label for="exampleFormControlTextarea1" class="form-label">Your Message</label>
-                <textarea name="message" class="form-control" id="exampleFormControlTextarea1" rows="3" placeholder="Enter your plain message"></textarea>
-            </div>
-            <div class="mb-3">
+                    
+                <?php if ($operational_log) { ?>
+                    <input type="text" class="form-control" name="uuid"  placeholder="uuid" id="uuid" hidden value="<?php echo $operational_log['uuid']?? null ?>">
+                <?php } ?>
 
-                <div class="form-check">
-                    <input name="send_me_a_copy" class="form-check-input" type="checkbox" name="flexRadioDefault" id="flexRadioDefault1">
-                    <label class="form-check-label" for="flexRadioDefault1">
-                        send me a copy
-                    </label>
-                </div>
-            </div>
-            <button type="reset" id="cancelBtn" class="btn btn-lg btn-danger mb-3">Cancel</button>
-            <button type="reset" id="resetBtn" class="btn btn-lg btn-secondary mb-3">Reset</button>
-            <button type="submit" class="btn btn-lg btn-primary mb-3">Send</button>
-        </form>
+                <div class="input-group mb-3"> 
+                    <span class="input-group-text">
+                        <i class="fa-solid fa-key"></i>
+                    </span>
+                    <div class="form-floating">
+                        <input type="text" class="form-control" name="key"  placeholder="key" id="dencryption_key" required>
+                        <label for="key">Enter key</label>
+                    </div>
+                </div>           
+                <a href="index.php" class="btn btn-lg btn-danger mb-3">Cancel</a>                
+                <button type="submit" class="btn btn-lg btn-primary mb-3">Decrypt</button>
+            </form>
+        <?php  } else { ?>
+            <p class="text-danger">We can not proceed with this request. kindly check your email for right link or cancel the operation </p>
+            <a href="index.php" class="btn btn-lg btn-danger mb-3">
+                Cancel
+            </a>
+        <?php } ?>
+       
     </div>   
     <!-- Button trigger modal -->
     <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#exampleModal" id="openModalButton" hidden>
@@ -152,7 +153,8 @@
     </div>
     <script>
         $('#success-div').hide();
-        $('#error-div').hide();
+        $('#decrypted-div').hide();
+
         var spinner = '<div class="d-flex justify-content-center align-center">'
                 +'<div class="spinner-border text-primary" role="status">'
                     +'<span class="visually-hidden">Loading...</span>'
@@ -188,15 +190,9 @@
             toastr.options.closeButton = true;
             toastr.options.progressBar = true;
 
-
-            $('#cancelBtn').click(function(event){
+            $('#decryption_mail_form').submit(function (event){
                 event.preventDefault();
-                location.reload();
-            });
-
-            $('#encryption_mail_form').submit(function (event){
-                event.preventDefault();
-                $('#error-div').hide('');
+                $('#error-div-js').hide('');
                 $('#success-div').hide('');
                 $('#openModalButton').click();
                 $('#modal-body').html(spinner);
@@ -207,7 +203,7 @@
                  * using fetch api for the ajax request.
                  * @documentation link  https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch
                 */
-                fetch('forward-to-email.php', {
+                fetch('api/decrypt-mail.php', {
                     method: "POST", 
                     body: form_data,
                     headers: {
@@ -220,7 +216,6 @@
                         // alert the browser response error
                         $('#closeModalButton').click();
                         toastr.error(response.statusText);
-                        $('#error-div').show('');
                         $('#error-message').append('<p>'+response.statusText+'</p>')	;		
 
                         // Get the server response
@@ -228,9 +223,8 @@
                             toastr.error(promise.message);
                             /* this is an example for new snippet extension make by me xD */
                             if(promise.errors)
-                            $('#error-div').show('');
                             for(const error of Object.entries(promise.errors))	
-                                $('#error-message').append('<p>'+error+'</p>')	;		
+                                toastr.error(error);
                         });
                         $('#footerCloseModalButton').click();
 
@@ -239,15 +233,16 @@
                         response.json().then((promise) => {
                             if(promise.status==200){
                                 toastr.success(promise.message);
-                                $('#success-div').show();
-                                $('#success-message').html('<p>'+promise.message+'</p>');
+                                $('#decrypted-div').show();
+                                $('#decrypted-text-area').val(promise.des_text);
+                                $("#modal-footer").show();
+                                $("#modal-body").html('<p class="text-success">'+promise.des_text+'</p>');
+                                $('#closeModalButton').click();
                                 $('#resetBtn').click();
                             }else{
-                                toastr.error("Request error");
-                                $("#modal-body").html('<p class="text-danger">'+promise.message+'</p>');
+                                toastr.error(promise.message);
                                 $("#modal-footer").show();
-                                $('#error-div').show();
-                                $('#error-message').html('<p>'+promise.message+'</p>');
+                                $("#modal-body").html('<p class="text-danger">'+promise.message+'</p>');
                             }	
 
                             $('#closeModalButton').click();
@@ -261,30 +256,7 @@
                     toastr.error(error);
                 });
 
-            });           
-         
-            $('#copyButtonCipherText').click(function (){
-                // Get the text field
-                var copyable = document.getElementById('copyableCipherText');
-                // Select the text field
-                copyable.select();
-                copyable.setSelectionRange(0, 99999); // For mobile devices
-
-                // Copy the text inside the text field
-                navigator.clipboard.writeText(copyable.value);
-                toastr.success("Copied");
-            });
-            $('#copyButtonPlainText').click(function (){
-                // Get the text field
-                var copyable = document.getElementById('copyablePlainText');
-                // Select the text field
-                copyable.select();
-                copyable.setSelectionRange(0, 99999); // For mobile devices
-
-                // Copy the text inside the text field
-                navigator.clipboard.writeText(copyable.value);
-                toastr.success("Copied");
-            });        
+            });             
             
         });
     </script>
