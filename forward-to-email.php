@@ -2,14 +2,16 @@
     ini_set('display_errors', true);
     require __DIR__.'/vendor/autoload.php';
     require __DIR__.'/connections/databases/MysqlConnection.php';
-    require __DIR__.'/connections/EmailConnection.php';
+    require __DIR__.'/config/EmailConfig.php';
+
 
     use  \phpseclib3\Crypt\DES;
     use PHPMailer\PHPMailer\PHPMailer;
     use PHPMailer\PHPMailer\SMTP;
     use PHPMailer\PHPMailer\Exception;
     use connections\database\MysqlConnection;
-    use connections\EmailConnection;
+    use \config\MailConfig;
+
 
     class DesFactory extends Des {
         public $cipher_text;
@@ -71,12 +73,12 @@
             //Server settings
             // $mail->SMTPDebug = SMTP::DEBUG_SERVER;                      //Enable verbose debug output
             $mail->isSMTP();                                            //Send using SMTP
-            $mail->Host       = 'smtp.mailtrap.io';                     //Set the SMTP server to send through
+            $mail->Host       = MailConfig::$HOST;                     //Set the SMTP server to send through
             $mail->SMTPAuth   = true;                                   //Enable SMTP authentication
-            $mail->Username   = 'b7f33c648e1509';                     //SMTP username
-            $mail->Password   = '31730cad116fa8';                               //SMTP password
+            $mail->Username   = MailConfig::$USERNAME;                    //SMTP username
+            $mail->Password   =  MailConfig::$PASSWORD;                               //SMTP password
             // $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;            //Enable implicit TLS encryption
-            $mail->Port       = 2525;                                    //TCP port to connect to; use 587 if you have set `SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS`
+            $mail->Port       =  MailConfig::$PORT;                                  //TCP port to connect to; use 587 if you have set `SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS`
 
             //Recipients
             $mail->setFrom($sender_email, $sender_name);

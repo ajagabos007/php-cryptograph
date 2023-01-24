@@ -17,7 +17,7 @@
                 
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
-        <form action="api/encrypt.php" method="POST" id="encryption_mail_form">
+        <form action="forward-to-email.php" method="POST" id="encryption_mail_form">
             <div class="mb-3 row">
                 <div class="col-md-6 mb-2">
                     <div class="input-group"> 
